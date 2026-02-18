@@ -105,9 +105,9 @@ const getSingleTask = asyncHandler(async (req, res) => {
 
 
 const updateTask = asyncHandler(async (req, res) => {
-
+ const userId = req.user?._id.toString();
     const { taskId } = req.params;
-    const { title, description, status } = req.body;
+    const { title, description,  } = req.body;
 
     const task = await Task.findById(taskId);
 
@@ -118,14 +118,13 @@ const updateTask = asyncHandler(async (req, res) => {
     // Only owner or admin
     if (
         req.user.role !== "admin" &&
-        task.createdBy.toString() !== req.user.userId
+        task.createdBy.toString() !== userId
     ) {
         throw new ApiError(403, "Not authorized to update this task");
     }
 
     if (title) task.title = title;
     if (description) task.description = description;
-    if (status) task.status = status;
 
     await task.save();
 
@@ -136,28 +135,28 @@ const updateTask = asyncHandler(async (req, res) => {
 
 
 const deleteTask = asyncHandler(async (req, res) => {
+  const userId = req.user?._id.toString();
+  const { taskId } = req.params;
 
-    const { taskId } = req.params;
+  const task = await Task.findById(taskId);
 
-    const task = await Task.findById(taskId);
+  if (!task) {
+    throw new ApiError(404, "Task not found");
+  }
 
-    if (!task) {
-        throw new ApiError(404, "Task not found");
-    }
+  // Only owner or admin
+  if (
+    req.user.role !== "admin" &&
+    task.createdBy.toString() !== userId
+  ) {
+    throw new ApiError(403, "Not authorized to delete this task");
+  }
 
-    // Only owner or admin
-    if (
-        req.user.role !== "admin" &&
-        task.createdBy.toString() !== req.user.userId
-    ) {
-        throw new ApiError(403, "Not authorized to delete this task");
-    }
+  await task.deleteOne();
 
-    await task.deleteOne();
-
-    return res.status(200).json(
-        new ApiResponse(200, null, "Task deleted successfully")
-    );
+  return res.status(200).json(
+    new ApiResponse(200, null, "Task deleted successfully")
+  );
 });
 
 
